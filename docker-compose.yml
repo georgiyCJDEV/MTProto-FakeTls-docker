@@ -1,0 +1,37 @@
+services:
+  mtproxy:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: mtproxy:latest
+    container_name: mtproxy
+
+    volumes:
+      - "${DATA_VOLUME}:/data"
+    
+    network_mode: "host"
+
+#    ports:
+#      - "${HOST_PORT}:443"
+
+    environment:
+      PORT: 443
+      STATS_INTERNAL_PORT: ${STATS_INTERNAL_PORT}
+      # Workers count (default: 1)
+      WORKERS: ${WORKERS}
+      USE_FAKE_TLS: ${USE_FAKE_TLS}
+      # Domain for fake tls
+      FAKE_DOMAIN: ${FAKE_DOMAIN}
+    
+    # SERVER_NAME (external host ip)
+    env_file:
+      - server.env
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:${STATS_INTERNAL_PORT}/stats"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+       
