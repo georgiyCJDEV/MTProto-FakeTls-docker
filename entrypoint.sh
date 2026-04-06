@@ -31,12 +31,19 @@ fi
 
 SECRET=$(cat "$DATA_DIR/secret")
 
-echo "Using secret: $SECRET"
+if [ "$USE_FAKE_TLS" = "true" ] && [ -n "$FAKE_DOMAIN" ]; then
+    # Encode tls domain to hex
+    DOMAIN_HEX=$(echo -n "$FAKE_DOMAIN" | xxd -p | tr -d '\n')
+    # Generating secret for client with server's secret and hexed fake tls domain
+    CLIENT_SECRET="ee${SECRET}${DOMAIN_HEX}"
+else
+    CLIENT_SECRET="$SECRET"
+fi
 
 # Generate tg:// connection link
 if [ ! -f "$DATA_DIR/proxy_link" ]; then
     echo "Generating mtproxy link..."
-    PROXY_LINK="tg://proxy?server=${SERVER_NAME}&port=${PORT}&secret=${SECRET}"
+    PROXY_LINK="tg://proxy?server=${SERVER_NAME}&port=${PORT}&secret=${CLIENT_SECRET}"
     echo "$PROXY_LINK" > "$DATA_DIR/proxy_link"
 else
     PROXY_LINK=$(cat "$DATA_DIR/proxy_link")
@@ -45,10 +52,11 @@ fi
 echo "-------------------------------------"
 echo "Server: $SERVER_NAME"
 echo "Port: $PORT"
-echo "Secret: $SECRET"
+echo "Server secret: $SECRET"
 if [ "$USE_FAKE_TLS" = "true" ]; then
     echo "Fake TLS: ENABLED"
     echo "Fake domain: $FAKE_DOMAIN"
+    echo "Client secret: $CLIENT_SECRET"
 else
     echo "Fake TLS: DISABLED"
 fi
